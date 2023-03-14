@@ -1,15 +1,16 @@
+from functools import wraps
 from fastapi import FastAPI
 
 app = FastAPI()
 
 
-def auth_required(handler):
+def auth_required1(handler):
     async def wrapper(*args, **kwargs):
         value = kwargs.get('value')
 
         # Do something with value
 
-        value = 'test changed'
+        value = 'value has been changed'
         return await handler(value)
 
     # Fix signature of wrapper
@@ -27,7 +28,18 @@ def auth_required(handler):
         ],
         return_annotation = inspect.signature(handler).return_annotation,
     )
+    return wrapper
 
+
+def auth_required2(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        value = kwargs.get('value')
+
+        # Do something with value
+        value = 'value has been changed'
+
+        return await func(value)
     return wrapper
 
 
@@ -35,7 +47,14 @@ def get_value():
     return 'test'
 
 
-@app.get("/")
-@auth_required
-async def root(value:str=get_value()):
+@app.get("/v1")
+@auth_required1
+async def root1(value:str=get_value()):
+    return {"message": value}
+
+
+
+@app.get("/v2")
+@auth_required2
+async def root2(value:str=get_value()):
     return {"message": value}
